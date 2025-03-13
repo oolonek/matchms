@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 import matplotlib.pyplot as plt
 import numpy as np
 from matchms.plotting.spectrum_plots import plot_spectra_mirror, plot_spectrum
@@ -267,6 +267,90 @@ class Spectrum:
                                intensities=losses_intensities[mask])
             return losses
         return None
+
+    def compute_internal_losses(
+        self,
+        precision: int = 2,
+        loss_mz_from: float = 0.0,
+        loss_mz_to: float = None
+    ) -> Optional[List[Fragments]]:
+        """
+        Computes internal losses as the differences between every pair of fragment m/z values
+        (i.e. combinatorial losses). Only losses between loss_mz_from and loss_mz_to will be kept.
+        
+        If loss_mz_to is None, it is set to the precursor_mz.
+        
+        Parameters
+        ----------
+        precision : int
+            Number of decimals to which the m/z values will be rounded.
+        loss_mz_from : float
+            Minimum acceptable loss value.
+        loss_mz_to : float, optional
+            Maximum acceptable loss value. If None, defaults to precursor_mz.
+        
+        Returns
+        -------
+        Fragments or None:
+            A Fragments object with computed loss m/z values and associated intensities, or None if
+            no precursor_mz is found or no valid loss is computed.
+        """
+        import numpy as np
+        from itertools import combinations
+        from matchms import Fragments
+
+        # Fetch precursor_mz as in compute_losses()
+        precursor_mz = self.get("precursor_mz", None)
+        if precursor_mz is None:
+            return None
+
+        if loss_mz_to is None:
+            loss_mz_to = precursor_mz
+
+        # Round the peaks m/z values and extract intensities
+        peaks_mz = np.round(self.peaks.mz, precision)
+        peaks_intensities = self.peaks.intensities
+
+        peak_loss_pairs = []
+
+        n = len(peaks_mz)
+        # Iterate over all pairwise combinations (using indices for intensity access)
+        for i in range(n):
+            print(i)
+            loss_values = []
+            loss_intensities = []
+            for j in range(i + 1, n):
+                loss = peaks_mz[j] - peaks_mz[i]
+                # Filter based on boundaries and ensure loss is at least 1
+                if loss >= loss_mz_from and loss <= loss_mz_to and loss >= 1:
+                    loss_values.append(loss)
+                    # Use the intensity of the parent peak (higher m/z)
+                    loss_intensities.append(peaks_intensities[j])
+            # peak_loss_pair = Fragments(mz=np.array(loss_values), intensities=np.array(loss_intensities))
+            # peak_loss_pairs.append(peak_loss_pair)
+
+            print(loss_values)
+            
+        
+            if loss_values:
+                loss_values = np.array(loss_values)
+                loss_intensities = np.array(loss_intensities)
+                # Sort the losses in ascending order along with intensities
+                sorted_indices = np.argsort(loss_values)
+                loss_values = loss_values[sorted_indices]
+                loss_intensities = loss_intensities[sorted_indices]
+                # return Fragments(mz=loss_values, intensities=loss_intensities)
+                peak_loss_pairs.append(Fragments(mz=loss_values, intensities=loss_intensities))
+            else:
+                return None
+
+        return peak_loss_pairs
+
+    # And update the property to use the new internal losses calculation.
+    @property
+    def internal_losses(self) -> Optional[Fragments]:
+        return self.compute_internal_losses()
+
 
     @property
     def peaks(self) -> Fragments:
