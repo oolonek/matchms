@@ -320,8 +320,9 @@ To install matchms, do:
 
   git clone https://github.com/matchms/matchms.git
   cd matchms
-  uv sync
   uv sync --all-extras
+  source .venv/bin/activate
+
 
 To install matchms, do:
 
