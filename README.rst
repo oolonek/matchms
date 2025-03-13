@@ -312,6 +312,17 @@ Documentation for developers
 Installation
 ============
 
+We use [uv](https://docs.astral.sh/uv/) for dependencies management. Please refet to website for installation instructions.
+
+To install matchms, do:
+
+.. code-block:: console
+
+  git clone https://github.com/matchms/matchms.git
+  cd matchms
+  uv venv
+  source .venv/bin/activate
+
 To install matchms, do:
 
 .. code-block:: console
